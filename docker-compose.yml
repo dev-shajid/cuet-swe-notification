@@ -1,10 +1,27 @@
 version: '3.8'
 services:
+  app:
+    build: .
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - PORT=8000
+      - SERVICE_ACCOUNT_KEY_PATH=./serviceAccountKey.json
+    depends_on:
+      - redis
+    # Mount volumes if you want to update these without rebuilding
+    # volumes:
+    #   - ./.env:/app/.env
+    #   - ./serviceAccountKey.json:/app/serviceAccountKey.json
+
   redis:
     image: redis:8
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
 volumes:
   redis_data:
