@@ -20,26 +20,19 @@ git pull origin main || {
 echo -e "${GREEN}✓ Code updated successfully${NC}"
 
 # Step 2: Stop running containers
-echo -e "${YELLOW}[2/4] Stopping running containers...${NC}"
+echo -e "${YELLOW}[2/3] Stopping running containers...${NC}"
 docker compose down || {
     echo -e "${RED}Warning: Failed to stop containers. Continuing anyway...${NC}"
 }
 echo -e "${GREEN}✓ Containers stopped${NC}"
 
 # Step 3: Build and start containers
-echo -e "${YELLOW}[3/4] Building and starting containers...${NC}"
+echo -e "${YELLOW}[3/3] Building and starting containers...${NC}"
 docker compose up -d --build || {
     echo -e "${RED}Error: Failed to start containers${NC}"
     exit 1
 }
 echo -e "${GREEN}✓ Containers started${NC}"
-
-# Step 4: Collect static files
-echo -e "${YELLOW}[4/4] Collecting static files...${NC}"
-docker compose exec -T web python manage.py collectstatic --noinput || {
-    echo -e "${RED}Warning: Failed to collect static files${NC}"
-}
-echo -e "${GREEN}✓ Static files collected${NC}"
 
 echo ""
 echo -e "${GREEN}=========================================="
