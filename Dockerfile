@@ -35,7 +35,7 @@ COPY .env ./
 COPY serviceAccountKey.json ./
 
 # Expose the application port
-EXPOSE 8000
+EXPOSE 7000
 
 # Start the application
 CMD ["npm", "start"]
