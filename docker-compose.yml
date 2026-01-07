@@ -7,7 +7,7 @@ services:
       - "7000:7000"
     environment:
       - REDIS_HOST=redis
-      - PORT=8000
+      - PORT=7000
       - SERVICE_ACCOUNT_KEY_PATH=./serviceAccountKey.json
     depends_on:
       - redis
