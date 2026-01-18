@@ -1,4 +1,5 @@
-import { db } from '../config/firebase';
+import { Student, StudentEnrollment, Teacher } from '../models';
+import { getRole } from '../utils/role';
 import axios from 'axios';
 
 const EXPO_PUSH_API_URL = 'https://exp.host/--/api/v2/push/send';
@@ -15,9 +16,20 @@ interface PushMessage {
 // Get push token for a user by email
 export async function getUserPushToken(email: string): Promise<string | null> {
     try {
-        const userDoc = await db.collection('users').doc(email).get();
-        if (!userDoc.exists) return null;
-        return userDoc.data()?.expoPushToken || null;
+        const role = getRole(email);
+        if (!role) return null;
+
+        let pushToken: string | null = null;
+
+        if (role === 'teacher') {
+            const teacher = await Teacher.findOne({ email });
+            pushToken = teacher?.expoPushToken || null;
+        } else {
+            const student = await Student.findOne({ email });
+            pushToken = student?.expoPushToken || null;
+        }
+
+        return pushToken;
     } catch (error) {
         console.error('Error getting push token for', email, error);
         return null;
@@ -131,12 +143,24 @@ export async function sendNotificationToCourseStudents(
     data?: any
 ) {
     try {
-        // Get all students enrolled in the course - strictly following user's schema logic
-        const enrollmentsSnapshot = await db.collection('enrollments')
-            .where('courseId', '==', courseId)
-            .get();
+        // Get all students enrolled in the course using MongoDB        
+        const enrollments = await StudentEnrollment.find({ course: courseId });
 
-        const studentEmails = enrollmentsSnapshot.docs.map(doc => doc.data().studentEmail);
+        if (enrollments.length === 0) {
+            return { total: 0, successful: 0, failed: 0, results: [] };
+        }
+
+        // Get all student IDs from enrollments
+        const studentIds = new Set<number>();
+        enrollments.forEach((enrollment: any) => {
+            for (let id = enrollment.startId; id <= enrollment.endId; id++) {
+                studentIds.add(id);
+            }
+        });
+
+        // Find all students with these IDs
+        const students = await Student.find({ studentId: { $in: Array.from(studentIds) } });
+        const studentEmails = students.map(student => student.email);
 
         if (studentEmails.length === 0) {
             return { total: 0, successful: 0, failed: 0, results: [] };
@@ -157,13 +181,15 @@ export async function sendNotificationToUsersByRole(
     data?: any
 ) {
     try {
-        // Note: user code used `doc.id` as email for users collection.
-        // `query(usersRef, where('role', '==', role))`
-        const usersSnapshot = await db.collection('users')
-            .where('role', '==', role)
-            .get();
+        let emails: string[] = [];
 
-        const emails = usersSnapshot.docs.map(doc => doc.id);
+        if (role === 'teacher') {
+            const teachers = await Teacher.find({});
+            emails = teachers.map(teacher => teacher.email);
+        } else {
+            const students = await Student.find({});
+            emails = students.map(student => student.email);
+        }
 
         if (emails.length === 0) {
             return { total: 0, successful: 0, failed: 0, results: [] };

@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   app:
     build: .
@@ -13,8 +12,8 @@ services:
       - redis
     # Mount volumes if you want to update these without rebuilding
     # volumes:
-    #   - ./.env:/app/.env
-    #   - ./serviceAccountKey.json:/app/serviceAccountKey.json
+      # - ./.env:/app/.env
+      # - ./serviceAccountKey.json:/app/serviceAccountKey.json
 
   redis:
     image: redis:8
