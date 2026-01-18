@@ -22,7 +22,14 @@ export const getRole = (email: string): UserRole | null => {
     if (extractStudentIdFromEmail(e) !== null) {
         return 'student';
     }
-    if (e === 'sajidislam729@gmail.com' || e=='mahirsalahin01@gmail.com' || e=='shajidislam.ctg.bd@gmail.com' || e=='s11096875@gmail.com' || e.endsWith('@cuet.ac.bd')) {
+        if (
+        e === 'sajidislam729@gmail.com' ||
+        e == 'mahirsalahin01@gmail.com' ||
+        e == 'shajidislam.ctg.bd@gmail.com' ||
+        e == 's11096875@gmail.com' ||
+        e == 'shamsniloy75@gmail.com' ||
+        e.endsWith('@cuet.ac.bd')
+    ) {
         return 'teacher';
     }
     return null;
