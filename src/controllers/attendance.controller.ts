@@ -1,6 +1,7 @@
-import { AttendanceSession, AttendanceRecord, Student } from '../models';
+import { AttendanceSession, AttendanceRecord, Student, Course } from '../models';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { Response } from 'express';
+import { notificationQueue, QUEUE_EVENTS } from '../config/queue';
 
 export class AttendanceController {
   // Create attendance session
@@ -54,10 +55,10 @@ export class AttendanceController {
 
       // ✅ Check if we have any valid students
       if (Object.keys(validStudentStatuses).length === 0) {
-        res.status(400).json({ 
-          success: false, 
+        res.status(400).json({
+          success: false,
           message: 'No valid students found. All student IDs are missing from the database.',
-          missingStudentIds 
+          missingStudentIds
         });
         return;
       }
@@ -98,6 +99,37 @@ export class AttendanceController {
       });
 
       await AttendanceRecord.insertMany(attendanceRecords);
+
+      // ✅ Send notification to absent students
+      try {
+        const course = await Course.findById(courseId);
+
+        // Identify absent students
+        const absentStudents = Object.entries(validStudentStatuses)
+          .filter(([_, status]) => status === 'absent')
+          .map(([studentIdStr]) => {
+            const studentIdNum = parseInt(studentIdStr);
+            return studentMap.get(studentIdNum)!;
+          });
+
+        if (absentStudents.length > 0 && course) {
+          const absentEmails = absentStudents.map(s => s.email);
+
+          await notificationQueue.add(QUEUE_EVENTS.SEND_USERS, {
+            emails: absentEmails,
+            title: `Absent in "${course.name}"`,
+            body: `You have been marked absent in ${course.code} - ${course.name} on ${new Date(date).toDateString()}.`,
+            data: {
+              courseId: courseId,
+              type: 'attendance_absent',
+              courseCode: course.code,
+              date: date,
+            },
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to send absent notifications:', notifError);
+      }
 
       res.status(201).json({
         success: true,
@@ -173,10 +205,10 @@ export class AttendanceController {
       }
 
       if (Object.keys(validStudentStatuses).length === 0) {
-        res.status(400).json({ 
-          success: false, 
+        res.status(400).json({
+          success: false,
           message: 'No valid students found.',
-          missingStudentIds 
+          missingStudentIds
         });
         return;
       }
@@ -217,6 +249,37 @@ export class AttendanceController {
       });
 
       await AttendanceRecord.insertMany(attendanceRecords);
+
+      // ✅ Send notification to absent students
+      try {
+        const course = await Course.findById(courseId);
+
+        // Identify absent students
+        const absentStudents = Object.entries(validStudentStatuses)
+          .filter(([_, status]) => status === 'absent')
+          .map(([studentIdStr]) => {
+            const studentIdNum = parseInt(studentIdStr);
+            return studentMap.get(studentIdNum)!;
+          });
+
+        if (absentStudents.length > 0 && course) {
+          const absentEmails = absentStudents.map(s => s.email);
+
+          await notificationQueue.add(QUEUE_EVENTS.SEND_USERS, {
+            emails: absentEmails,
+            title: `Absent in "${course.name}"`,
+            body: `You have been marked absent in ${course.code} - ${course.name} on ${new Date(date).toDateString()}.`,
+            data: {
+              courseId: courseId,
+              type: 'attendance_absent',
+              courseCode: course.code,
+              date: date,
+            },
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to send absent notifications:', notifError);
+      }
 
       res.json({
         success: true,
