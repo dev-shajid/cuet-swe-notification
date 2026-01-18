@@ -160,7 +160,7 @@ export class AttendanceController {
 
       // Parse and normalize date
       const sessionDate = new Date(date);
-      sessionDate.setHours(0, 0, 0, 0);
+      // sessionDate.setHours(0, 0, 0, 0); // Removed to match createAttendance behavior and avoid timezone issues
 
       // Validate date
       if (isNaN(sessionDate.getTime())) {
