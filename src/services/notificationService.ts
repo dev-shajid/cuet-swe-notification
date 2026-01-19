@@ -74,6 +74,25 @@ export async function sendPushNotification(
     }
 }
 
+// Send email using Attensys Webhook
+export async function sendEmail(
+    to: string,
+    subject: string,
+    message: string
+) {
+    try {
+        await axios.post('https://playground.attensys.ai/webhook/send-email', {
+            to,
+            subject,
+            message,
+        });
+        return { success: true };
+    } catch (error: any) {
+        console.error('Failed to send email:', error.response?.data || error.message);
+        return { success: false, error: String(error) };
+    }
+}
+
 // Send notification to a single user by email
 export async function sendNotificationToUser(
     email: string,
@@ -81,14 +100,26 @@ export async function sendNotificationToUser(
     body: string,
     data?: any
 ) {
+    // Send email concurrently
+    const emailPromise = sendEmail(email, title, body);
+
     const token = await getUserPushToken(email);
+
+    let pushResult: { success: boolean; data?: any; error?: string } = { success: false, error: 'no-token' };
 
     if (!token) {
         console.warn('No push token for', email);
-        return { success: false, error: 'no-token' };
+    } else {
+        pushResult = await sendPushNotification(token, title, body, data);
     }
 
-    return await sendPushNotification(token, title, body, data);
+    const emailResult = await emailPromise;
+
+    return {
+        success: pushResult.success || emailResult.success,
+        push: pushResult,
+        emailResult: emailResult,
+    };
 }
 
 // Send notification to multiple users by email list
